@@ -10,9 +10,11 @@ Capsule::schema()->create('loginRecords', function ($table) {
 
     $table->unsignedBigInteger('user_id');
 
+    $table->datetime('last_seen')->nullable();
+
     $table->rememberToken();
 
-    $table->timestamps()->default(getdate());
+    $table->timestamps();
 
     $table->foreign('user_id')
         ->references('id')
