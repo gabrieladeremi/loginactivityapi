@@ -13,7 +13,7 @@ class LoginRecord extends Eloquent
      */
 
     protected $fillable = [
-        'user_id',
+        'user_id', 'email', 'password'
     ];
 
     /**

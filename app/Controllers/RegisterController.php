@@ -1,95 +1,25 @@
 <?php
 namespace App\controllers;
 
-
-use App\Database\Database;
-use App\transformers\UserTransformer;
-use League\Fractal\Resource\Collection;
-use League\Fractal\Manager;
+use App\services\RegistrationService;
 use model\User;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Rakit\Validation\Validator;
 
 
 class RegisterController
 {
     /**
-     * @var Manager
+     * @param $_POST
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     * @throws \Throwable
      */
-    private $fractal;
-
-    /**
-     * @var UserTransformer
-    */
-    private $userTransformer;
 
     public function post()
     {
-        $this->fractal = new Manager();
-        $this->userTransformer = new UserTransformer();
-
-        $validator = new Validator;
-
-        $validation = $validator->make($_POST, [
-            'firstname'             => 'required|min:3',
-            'lastname'              => 'required|min:3',
-            'phone_number'          => 'required|min:10',
-            'address'               => 'required',
-            'email'                 => 'required|email',
-            'password'              => 'required|min:6',
-            'confirm_password'      => 'required|same:password',
+        echo json_encode([
+            'data' => RegistrationService::registerUser($_POST)
         ]);
 
-        // then validate
-        $validation->validate();
-
-        if ($validation->fails()) {
-
-            $errors = $validation->errors();
-
-            print_r($errors->firstOfAll());
-
-            exit;
-        } else {
-
-            $capsule = (new Database())->getDatabaseConnection();
-
-            $hashPassword = password_hash($_POST['password'], PASSWORD_DEFAULT);
-
-            $createUser =  $capsule->table('users')
-                        ->insert([
-                            'firstname' => $_POST['firstname'],
-                            'lastname' => $_POST['lastname'],
-                            'email' => $_POST['email'],
-                            'phone_number' => $_POST['phone_number'],
-                            'address' => $_POST['address'],
-                            'password' => $hashPassword,
-                            'created_at' => date("Y-m-d H:i:s")
-                        ]);
-            if( $createUser != 1) {
-                echo (json_encode([
-                    'status' => 500,
-                    'message' => 'Registration Fail'
-                ]));
-
-            } else {
-                $user = array(
-                    'firstname' => $_POST['firstname'],
-                    'lastname' => $_POST['lastname'],
-                    'email' => $_POST['email'],
-                    'phone_number' => $_POST['phone_number'],
-                    'address' => $_POST['address']
-                );
-                $user = new Collection($user, $this->userTransformer);
-                $user = $this->fractal->createData($user);
-
-                echo (json_encode([
-                    'status' => 201,
-                    'message' => 'Registration Successful',
-                    'data' => $user->getResource()->getData()
-                ]));
-            }
-        }
     }
 }

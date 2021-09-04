@@ -1,9 +1,10 @@
 <?php
 
 use App\Vendor\Src\Toro;
-use App\controllers\RegisterController;
-use App\controllers\LoginController;
-use App\controllers\LoginRecordController;
+use App\Controllers\RegisterController;
+use App\Controllers\LoginController;
+use App\Controllers\LoginRecordController;
+use App\Controllers\LogoutController;
 
 $dotenv = Dotenv\Dotenv::createImmutable('../../portal');
 $dotenv->load();
@@ -11,5 +12,6 @@ $dotenv->load();
 Toro::serve([
     '/register' => RegisterController::class,
     '/' => LoginController::class,
-    '/login-records' => LoginRecordController::class
+    '/login-records' => LoginRecordController::class,
+    '/logout' => LogoutController::class
 ]);
