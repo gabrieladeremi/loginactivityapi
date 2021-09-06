@@ -13,12 +13,16 @@ class LogoutController
     {
         $user_id = null;
 
+        var_dump($_SERVER['HTTP_AUTHORIZATION']);
+
         $token = str_replace("Bearer ", "", $_SERVER['HTTP_AUTHORIZATION']);
 
         try{
             $decodedToken = JWT::decode($token, $_ENV['SECRET_KEY'], [$_ENV['JWT_ALG']]);
 
             $castedToken = (array) $decodedToken;
+
+            var_dump($decodedToken);
 
             $user_id = $castedToken[0]->id;
 

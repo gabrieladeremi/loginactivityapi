@@ -39,7 +39,7 @@ class LoginService
                     $audience_claim = $_ENV['AUDIENCE_CLAIM'];
                     $issued_at = time(); // issued at
                     $not_before_claim = $issued_at + 10; //not before in seconds
-                    $expire_claim = $issued_at; // expire time in seconds
+                    $expire_claim = 60; // expire time in seconds
                     $token = array(
                         "iss" => $issuer_claim,
                         "aud" => $audience_claim,
@@ -76,6 +76,7 @@ class LoginService
                 else{
 
                     http_response_code(401);
+
                     return json_encode(array("message" => "Login failed.", "password" => $password));
                 }
 

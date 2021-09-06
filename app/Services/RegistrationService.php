@@ -3,69 +3,49 @@
 namespace App\services;
 
 use App\Database\Database;
-use App\transformers\UserTransformer;
-use League\Fractal\Manager;
-use League\Fractal\Resource\Collection;
+use App\Exceptions\RegistrationFailedException;
+use App\Model\User;
 
 class RegistrationService
 {
-    public static function registerUser(Array $validInput)
-    {
-        $fractal = new Manager();
+    public static function registerUser(
+        string $firstname,
+        string $lastname,
+        string $email,
+        string $password,
+        string $phoneNumber,
+        ?string $address = null
+    ): User {
+        $capsule = (new Database())->getDatabaseConnection();
 
-        $userTransformer = new UserTransformer();
+        $hashPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        $validInput->validate();
+        $wasUserCreated = $capsule->table('users')->insert([
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'email' => $email,
+            'phone_number' => $phoneNumber,
+            'address' => $address,
+            'password' => $hashPassword,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
 
-        if ($validInput->fails()) {
+        if (! $wasUserCreated) {
 
-            $errors = $validInput->errors();
-
-            print_r($errors->firstOfAll());
-
-            exit;
-        } else {
-
-            $capsule = (new Database())->getDatabaseConnection();
-
-            $hashPassword = password_hash($_POST['password'], PASSWORD_DEFAULT);
-
-            $createUser =  $capsule->table('users')
-                ->insert([
-                    'firstname' => $_POST['firstname'],
-                    'lastname' => $_POST['lastname'],
-                    'email' => $_POST['email'],
-                    'phone_number' => $_POST['phone_number'],
-                    'address' => $_POST['address'],
-                    'password' => $hashPassword,
-                    'created_at' => date("Y-m-d H:i:s")
-                ]);
-            if( $createUser != 1) {
-                echo (json_encode([
-                    'status' => 500,
-                    'message' => 'Registration Fail'
-                ]));
-
-            } else {
-                $user = array(
-                    'firstname' => $_POST['firstname'],
-                    'lastname' => $_POST['lastname'],
-                    'email' => $_POST['email'],
-                    'phone_number' => $_POST['phone_number'],
-                    'address' => $_POST['address']
-                );
-                $user = new Collection($user, $userTransformer);
-                $user = $fractal->createData($user);
-
-                return (json_encode([
-                    'status' => 201,
-                    'message' => 'Registration Successful',
-                    'data' => $user->getResource()->getData()
-                ]));
-            }
+            throw RegistrationFailedException::failed('Could not create user profile');
 
         }
 
+        /** @var User|null $user */
+        $user = User::where('email', $email)->first();
+
+        if ($user === null) {
+
+            throw new \RuntimeException('Issues retrieving your profile information');
+
+        }
+
+        return $user;
     }
 
 }

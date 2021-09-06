@@ -1,27 +1,22 @@
 <?php
 namespace App\controllers;
 
+use App\Exceptions\RegistrationFailedException;
 use App\services\RegistrationService;
-use model\User;
+use App\transformers\UserTransformer;
+use League\Fractal\Manager;
+use League\Fractal\Resource\Item;
 use Rakit\Validation\Validator;
-use Symfony\Component\HttpFoundation\Response;
-
 
 class RegisterController
 {
-    /**
-     * @param $_POST
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     * @throws \Throwable
-     */
 
     public function post()
     {
         $validator = new Validator;
 
         $validatedInput = $validator->make($_POST, [
-            'firstname'         => 'required|min:3',
+            'firstname'         => ['required', 'min:3'],
             'lastname'          => 'required|min:3',
             'phone_number'      => 'required|min:10',
             'address'           => 'required',
@@ -30,9 +25,44 @@ class RegisterController
             'confirm_password'  => 'required|same:password',
         ]);
 
-        echo json_encode([
-            'data' => RegistrationService::registerUser($validatedInput)
-        ]);
+        try {
 
+            $user = RegistrationService::registerUser(
+                firstname: $validatedInput['firstname'],
+                lastname: $validatedInput['lastname'],
+                email: $validatedInput['email'],
+                password: $validatedInput['password'],
+                phoneNumber: $validatedInput['phone_number'],
+                address: $validatedInput['address'],
+            );
+
+            $resource = new Item($user, new UserTransformer(), 'user');
+
+            header('HTTP/1.1 200 OK');
+
+            echo json_encode([
+                'status' => 200,
+                'user' => (new Manager())->createData($resource)->toArray()
+            ]);
+
+            exit();
+
+        } catch (RegistrationFailedException $e) {
+
+            header('HTTP/1.1 ' . $e->getCode());
+
+            echo json_encode(['status' => $e->getCode(), 'message' => $e->getMessage()]);
+
+            exit();
+
+        } catch (\Throwable $e) {
+
+            header('HTTP/1.1 500 Internal Server Error');
+
+            echo json_encode(['status' => 500, 'message' => $e->getMessage()]);
+
+            exit();
+
+        }
     }
 }
