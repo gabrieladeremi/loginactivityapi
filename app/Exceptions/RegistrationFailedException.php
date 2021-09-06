@@ -10,4 +10,5 @@ class RegistrationFailedException extends \RuntimeException
     {
         return new static($message, 500);
     }
+
 }

@@ -15,15 +15,15 @@ class RegisterController
     {
         $validator = new Validator;
 
-        $validatedInput = $validator->make($_POST, [
+        $validatedInput = $validator->validate($_POST, [
             'firstname'         => ['required', 'min:3'],
-            'lastname'          => 'required|min:3',
-            'phone_number'      => 'required|min:10',
-            'address'           => 'required',
-            'email'             => 'required|email',
-            'password'          => 'required|min:6',
-            'confirm_password'  => 'required|same:password',
-        ]);
+            'lastname'          => ['required', 'min:3'],
+            'phone_number'      => ['required', 'min:10'],
+            'address'           => ['required'],
+            'email'             => ['required', 'email'],
+            'password'          => ['required','min:6'],
+            'confirm_password'  => ['required','same:password']
+        ])->getValidatedData();
 
         try {
 
@@ -42,7 +42,7 @@ class RegisterController
 
             echo json_encode([
                 'status' => 200,
-                'user' => (new Manager())->createData($resource)->toArray()
+                'user' => $user->toArray()
             ]);
 
             exit();

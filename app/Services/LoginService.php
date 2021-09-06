@@ -1,86 +1,57 @@
 <?php
 
-namespace App\services;
+namespace App\Services;
 
+use App\Database\Database;
+use App\Exceptions\LoginFailedException;
 use Carbon\Carbon;
-use Firebase\JWT\JWT;
-use Illuminate\Database\Capsule\Manager;
+use App\Helper\TokenGenerator;
+
 
 class LoginService
 {
-    public static function loginUser(Array $request, Manager $connection)
-    {
-        $email = $request['email'];
+    public static function loginUser(
+        string $email,
+        string $password
+    ): array {
 
-        $password = $request['password'];
+        $connection = (new Database())->getDatabaseConnection();
 
         // retrieve user details from the Database querying against user email
-        $user = $connection->table('users')
+        $user = (array) $connection->table('users')
             ->where('email' , $email)
             ->get([
                 'id',
                 'firstname',
                 'lastname',
                 'password'
+            ])->first();
+
+
+        if(!password_verify($password, $user['password'])  ||  $user == null  ){
+
+            throw LoginFailedException::noUserFound('No user found with the credentials');
+        }
+
+        $generatedToken = TokenGenerator::generateToken();
+
+        if(! $generatedToken){
+
+            throw LoginFailedException::tokenNotGenerated('Token not generated');
+
+        }
+
+        $connection->table('loginRecords')
+            ->insert([
+                'user_id' => $user['id'],
+                'created_at' => date("Y-m-d H:i:s"),
+                'last_seen' => Carbon::now()
             ]);
 
-        if(count($user) > 0 ) {
-            foreach ($user as $key){
-                $user_id = $key->id;
-                $firstname = $key->firstname;
-                $lastname = $key->lastname;
-                $savedPassword = $key->password;
+        array_push($generatedToken, $user);
 
-                // verify if inputted password matches saved password
-                if(password_verify($password, $savedPassword))
-                {
-                    $secret_key = $_ENV['SECRET_KEY'];
-                    $issuer_claim = $_ENV['ISSUER_CLAIM'];;
-                    $audience_claim = $_ENV['AUDIENCE_CLAIM'];
-                    $issued_at = time(); // issued at
-                    $not_before_claim = $issued_at + 10; //not before in seconds
-                    $expire_claim = 60; // expire time in seconds
-                    $token = array(
-                        "iss" => $issuer_claim,
-                        "aud" => $audience_claim,
-                        "iat" => $issued_at,
-                        "nbf" => $not_before_claim,
-                        "exp" => $expire_claim,
-                        "data" => array(
-                            "firstname" => $firstname,
-                            "lastname" => $lastname,
-                            "email" => $email
-                        ),
-                        'user' => $user
-                    );
-                    http_response_code(200);
+        return $generatedToken;
 
-                    // save user login timestamp
-                    $connection->table('loginRecords')
-                        ->insert([
-                            'user_id' => $user_id,
-                            'created_at' => date("Y-m-d H:i:s"),
-                            'last_seen' => Carbon::now()
-                        ]);
-
-                    $jwt = JWT::encode($token['user'], $secret_key, $_ENV['JWT_ALG']);
-                    return json_encode(
-                        array(
-                            "message" => "Successful login.",
-                            "jwt" => $jwt,
-                            "email" => $email,
-                            "expireAt" => $expire_claim,
-
-                        ));
-                }
-                else{
-
-                    http_response_code(401);
-
-                    return json_encode(array("message" => "Login failed.", "password" => $password));
-                }
-
-            }
-        }
     }
+
 }
