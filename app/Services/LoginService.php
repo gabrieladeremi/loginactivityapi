@@ -38,13 +38,13 @@ class LoginService
                     $issuer_claim = $_ENV['ISSUER_CLAIM'];;
                     $audience_claim = $_ENV['AUDIENCE_CLAIM'];
                     $issued_at = time(); // issued at
-                    $notbefore_claim = $issued_at + 10; //not before in seconds
-                    $expire_claim = $issued_at + 60; // expire time in seconds
+                    $not_before_claim = $issued_at + 10; //not before in seconds
+                    $expire_claim = $issued_at; // expire time in seconds
                     $token = array(
                         "iss" => $issuer_claim,
                         "aud" => $audience_claim,
                         "iat" => $issued_at,
-                        "nbf" => $notbefore_claim,
+                        "nbf" => $not_before_claim,
                         "exp" => $expire_claim,
                         "data" => array(
                             "firstname" => $firstname,

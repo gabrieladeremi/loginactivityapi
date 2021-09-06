@@ -6,33 +6,20 @@ use App\Database\Database;
 use App\transformers\UserTransformer;
 use League\Fractal\Manager;
 use League\Fractal\Resource\Collection;
-use Rakit\Validation\Validator;
 
 class RegistrationService
 {
-    public static function registerUser(Array $request)
+    public static function registerUser(Array $validInput)
     {
         $fractal = new Manager();
 
         $userTransformer = new UserTransformer();
 
-        $validator = new Validator;
+        $validInput->validate();
 
-        $validatedInput = $validator->make($request, [
-            'firstname'             => 'required|min:3',
-            'lastname'              => 'required|min:3',
-            'phone_number'          => 'required|min:10',
-            'address'               => 'required',
-            'email'                 => 'required|email',
-            'password'              => 'required|min:6',
-            'confirm_password'      => 'required|same:password',
-        ]);
+        if ($validInput->fails()) {
 
-        $validatedInput->validate();
-
-        if ($validatedInput->fails()) {
-
-            $errors = $validatedInput->errors();
+            $errors = $validInput->errors();
 
             print_r($errors->firstOfAll());
 
@@ -69,13 +56,16 @@ class RegistrationService
                 );
                 $user = new Collection($user, $userTransformer);
                 $user = $fractal->createData($user);
+
+                return (json_encode([
+                    'status' => 201,
+                    'message' => 'Registration Successful',
+                    'data' => $user->getResource()->getData()
+                ]));
             }
+
         }
-        return (json_encode([
-            'status' => 201,
-            'message' => 'Registration Successful',
-            'data' => $user->getResource()->getData()
-        ]));
+
     }
 
 }
